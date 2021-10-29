@@ -5,6 +5,7 @@
 #include <vector>
 #include <memory>
 #include "TrackerManager.h"
+#include "HistogramFeature.h"
 #include "common.h"
 #include "util.h"
 
@@ -13,6 +14,7 @@ namespace M
     struct TrackData
     {
         KalmanTracker kalman;
+        FeatureBundle feats;
     };
 }
 
@@ -28,6 +30,7 @@ public:
 
 private:
     std::unique_ptr<TrackerManager<M::TrackData>> manager;
+    std::unique_ptr<FeatureMetric<M::TrackData>> feat_metric;
     std::vector<M::TrackData> data;
 };
 

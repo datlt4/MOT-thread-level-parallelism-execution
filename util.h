@@ -6,6 +6,10 @@
 #include <torch/torch.h>
 #include "common.h"
 
+#ifndef FEAT_DIM
+#define FEAT_DIM 8
+#endif // FEAT_DIM
+
 namespace M
 {
     static float iou(const bbox_t &bb_test, const bbox_t &bb_gt)
@@ -37,6 +41,60 @@ namespace M
             }
         }
         return dist;
+    }
+
+    static float mahalanobis(const torch::Tensor &det, const std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> &trk)
+    {
+        // torch::Tensor d = torch::unsqueeze(det, 0);
+        // torch::Tensor mu = torch::unsqueeze(std::get<0>(trk), 0);
+        torch::Tensor v = torch::unsqueeze(det - std::get<0>(trk), 0);
+        torch::Tensor maha = torch::matmul(torch::matmul(v, torch::inverse(std::get<2>(trk))), v.t());
+        // std::cout << "[ V ]\n"
+        //           << v << std::endl;
+        // std::cout << "[ S ]\n"
+        //           << std::get<2>(trk) << std::endl;
+        return maha[0][0].item<float>();
+    }
+
+    static torch::Tensor mahalanobis_dist(const std::vector<torch::Tensor> &dets, const std::vector<std::tuple<torch::Tensor, torch::Tensor, torch::Tensor>> &trks)
+    {
+        auto trk_num = trks.size();
+        auto det_num = dets.size();
+        auto dist = torch::empty({int64_t(trk_num), int64_t(det_num)});
+        for (size_t i = 0; i < trk_num; i++) // compute mahalanobis matrix as a distance matrix
+        {
+            for (size_t j = 0; j < det_num; j++)
+            {
+                dist[i][j] = mahalanobis(dets[j], trks[i]);
+            }
+        }
+        return dist;
+    }
+
+    static torch::Tensor extract(std::vector<cv::Mat> images)
+    {
+        std::vector<cv::Mat> histVec;
+        static const int histSize = FEAT_DIM;
+        static const float range[] = {0.0, 256.0};
+        static const float *histRange[] = {range};
+        static const int channels = 0;
+        torch::Tensor out = torch::ones({static_cast<long>(images.size()), FEAT_DIM});
+
+        for (int j = 0; j < images.size(); ++j)
+        {
+            std::vector<cv::Mat> bgr_planes;
+            cv::split(images[j], bgr_planes);
+            cv::Mat b_hist, g_hist, r_hist, avg_hist;
+            cv::calcHist(&bgr_planes[0], 1, 0, cv::Mat(), b_hist, 1, &histSize, histRange, true, false);
+            cv::calcHist(&bgr_planes[1], 1, 0, cv::Mat(), g_hist, 1, &histSize, histRange, true, false);
+            cv::calcHist(&bgr_planes[2], 1, 0, cv::Mat(), r_hist, 1, &histSize, histRange, true, false);
+            avg_hist = (b_hist + g_hist + r_hist) / (3 * bgr_planes[0].cols * bgr_planes[0].rows);
+            for (int i = 0; i < FEAT_DIM; ++i)
+            {
+                out[j][i] = *(avg_hist.data + i);
+            }
+        }
+        return out;
     }
 }
 

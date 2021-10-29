@@ -39,6 +39,8 @@ public:
 
     int id() const { return box.track_id; }
 
+    std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> meanVarCovStateKF();
+
 private:
     static const int max_age = MAX_AGE;
     static const int n_init = N_INIT;
@@ -55,7 +57,7 @@ private:
     cv::KalmanFilter kf;
     cv::Mat measurement;
 
-    std::vector<std::array<float, 4>> data;
+    std::vector<torch::Tensor> stateKF;
 };
 
 #endif // KALMAN_H

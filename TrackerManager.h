@@ -53,7 +53,9 @@ public:
                    data.end());
     }
 
-    std::vector<std::tuple<int, int>> update(const std::vector<bbox_t> &dets, const DistanceMetricFunc &iou_matching_metric)
+    std::vector<std::tuple<int, int>> update(const std::vector<bbox_t> &dets,
+                                             const DistanceMetricFunc &iou_matching_metric,
+                                             const DistanceMetricFunc &centroid_matching_metric)
     {
         // * M: unmatched_trks = [i0, i1, ...]
         std::vector<int> unmatched_trks;
@@ -82,6 +84,10 @@ public:
 
         // * IOU Matching
         associate_detections_to_trackers_idx(iou_matching_metric, unmatched_trks, unmatched_dets, matched);
+
+        // auto centroid_cost = centroid_matching_metric(unmatched_trks, unmatched_dets);
+        // std::cout << "[ CENTROID ][ COST ]:\n"
+        //           << centroid_cost << std::endl;
 
         for (int i : unmatched_trks)
         {

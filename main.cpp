@@ -3,7 +3,7 @@
 /**
  * ./mot AVG-TownCentre
  * ./mot djiphantom
- * ./mot drone
+ * ./mot drone 4
  * ./mot helofast
  * ./mot oxford-street
  * ./mot police-drone

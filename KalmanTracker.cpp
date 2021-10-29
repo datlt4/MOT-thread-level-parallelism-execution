@@ -51,8 +51,11 @@ void KalmanTracker::init(bbox_t initRect)
     kf.statePost.at<float>(1, 0) = initRect.yc;
     kf.statePost.at<float>(2, 0) = initRect.w * initRect.h;
     kf.statePost.at<float>(3, 0) = initRect.w / initRect.h;
-
-    data.emplace_back(std::array<float, 4>{initRect.xc, initRect.yc, initRect.w * initRect.h, initRect.w / initRect.h});
+    stateKF.emplace_back(torch::ones({4}));
+    stateKF[stateKF.size() - 1][0] = initRect.xc;
+    stateKF[stateKF.size() - 1][1] = initRect.yc;
+    stateKF[stateKF.size() - 1][2] = initRect.w * initRect.h;
+    stateKF[stateKF.size() - 1][3] = initRect.h;
 }
 
 // Predict the estimated bounding box.
@@ -80,7 +83,11 @@ void KalmanTracker::update(bbox_t stateMat)
     measurement.at<float>(1, 0) = stateMat.yc;
     measurement.at<float>(2, 0) = stateMat.w * stateMat.h;
     measurement.at<float>(3, 0) = stateMat.w / stateMat.h;
-    data.emplace_back(std::array<float, 4>{stateMat.xc, stateMat.yc, stateMat.w * stateMat.h, stateMat.w / stateMat.h});
+    stateKF.emplace_back(torch::ones({4}));
+    stateKF[stateKF.size() - 1][0] = stateMat.xc;
+    stateKF[stateKF.size() - 1][1] = stateMat.yc;
+    stateKF[stateKF.size() - 1][2] = stateMat.w * stateMat.h;
+    stateKF[stateKF.size() - 1][3] = stateMat.h;
     // update
     kf.correct(measurement);
 }
@@ -103,4 +110,24 @@ bbox_t KalmanTracker::bbox()
     cv::Rect2f rect = get_rect_xysr(kf.statePost);
     this->box.update(rect.x, rect.y, rect.width, rect.height);
     return this->box;
+}
+
+// * Mean - Variance - Covariance Matrix
+std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> KalmanTracker::meanVarCovStateKF()
+{
+    torch::Tensor dd = torch::stack(stateKF);
+    torch::Tensor mean = torch::mean(dd, 0);
+    torch::Tensor var = torch::var(dd, 0);
+    torch::Tensor covM = torch::cov(dd.t());
+    std::cout << "[ dd ]\n"
+              << dd << std::endl;
+    std::cout << "[ mean ]\n"
+              << mean << std::endl;
+    std::cout << "[ var ]\n"
+              << var << std::endl;
+    std::cout << "[ S ]\n"
+              << covM << std::endl;
+    std::cout << "[ S^-1 ]\n"
+              << torch::inverse(covM) << std::endl;
+    return std::make_tuple(mean, var, covM);
 }
