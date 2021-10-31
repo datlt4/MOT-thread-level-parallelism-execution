@@ -8,6 +8,7 @@
 #include "KalmanTracker.h"
 #include "common.h"
 #include "KalmanTracker.h"
+#include "util.h"
 
 #define INVALID_DIST 1E6f
 
@@ -22,7 +23,7 @@ template <typename TrackDataTemplate>
 class TrackerManager
 {
 public:
-    explicit TrackerManager(std::vector<TrackDataTemplate> &data) : data(data) {}
+    explicit TrackerManager(std::vector<TrackDataTemplate> &data, const std::array<int64_t, 2> &dim) : data(data), img_box(0, 0, dim[1], dim[0]) {}
 
     void kalman_predict()
     {
@@ -55,7 +56,8 @@ public:
 
     std::vector<std::tuple<int, int>> update(const std::vector<bbox_t> &dets,
                                              const DistanceMetricFunc &iou_matching_metric,
-                                             const DistanceMetricFunc &centroid_matching_metric)
+                                             const DistanceMetricFunc &centroid_matching_metric,
+                                             const DistanceMetricFunc &histogram_matching_metric)
     {
         // * M: unmatched_trks = [i0, i1, ...]
         std::vector<int> unmatched_trks;
@@ -84,10 +86,9 @@ public:
 
         // * IOU Matching
         associate_detections_to_trackers_idx(iou_matching_metric, unmatched_trks, unmatched_dets, matched);
-
         // auto centroid_cost = centroid_matching_metric(unmatched_trks, unmatched_dets);
-        // std::cout << "[ CENTROID ][ COST ]:\n"
-        //           << centroid_cost << std::endl;
+        // std::cout << "[ CENTROID ][ COST ]: " << centroid_cost << std::endl;
+        associate_detections_to_trackers_idx(histogram_matching_metric, unmatched_trks, unmatched_dets, matched);
 
         for (int i : unmatched_trks)
         {
@@ -99,6 +100,7 @@ public:
             data[x].kalman.update(dets[y]);
         }
 
+        // create and initialise new trackers for unmatched detections
         for (auto umd : unmatched_dets)
         {
             matched.emplace_back(data.size(), umd);
@@ -114,7 +116,10 @@ public:
         std::vector<bbox_t> ret;
         for (auto &t : data)
         {
-            if (t.kalman.state() == TrackState::Confirmed)
+            bbox_t box{t.kalman.bbox()};
+            cv::Rect2f rect(box.x, box.y, box.w, box.h);
+            // if (t.kalman.state() == TrackState::Confirmed && contains(img_box, rect.tl()) && contains(img_box, rect.br()))
+            if (t.kalman.state() == TrackState::Confirmed
             {
                 ret.push_back(t.kalman.bbox());
             }

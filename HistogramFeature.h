@@ -6,9 +6,7 @@
 #include "common.h"
 #include <torch/torch.h>
 
-#ifndef FEAT_DIM
 #define FEAT_DIM 8
-#endif // FEAT_DIM
 
 class FeatureBundle
 {
@@ -57,14 +55,16 @@ public:
     torch::Tensor distance(torch::Tensor features, const std::vector<int> &targets)
     {
         auto dist = torch::empty({int64_t(targets.size()), features.size(0)});
+
         if (features.size(0))
         {
-            for (size_t i = 0; i < targets.size(); ++i)
+            for (int i = 0; i < targets.size(); ++i)
             {
                 dist[i] = nn_cosine_distance(data[targets[i]].feats.get(), features);
+                std::cout << "[ nn_cosine_distance ] " << nn_cosine_distance(data[targets[i]].feats.get(), features) << std::endl;
             }
         }
-
+        std::cout << "[ DIST ] " << dist << std::endl;
         return dist;
     }
 
@@ -86,3 +86,4 @@ private:
 };
 
 #endif // HISTOGRAM_H
+;

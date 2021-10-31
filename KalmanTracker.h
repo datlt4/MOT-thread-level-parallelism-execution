@@ -39,7 +39,9 @@ public:
 
     int id() const { return box.track_id; }
 
-    std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> meanVarCovStateKF();
+    std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, size_t> meanVarCovStateKF();
+
+    size_t stateKFSize() { return stateKF.size(); }
 
 private:
     static const int max_age = MAX_AGE;

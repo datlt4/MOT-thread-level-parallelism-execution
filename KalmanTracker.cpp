@@ -113,21 +113,18 @@ bbox_t KalmanTracker::bbox()
 }
 
 // * Mean - Variance - Covariance Matrix
-std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> KalmanTracker::meanVarCovStateKF()
+std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, size_t> KalmanTracker::meanVarCovStateKF()
 {
-    torch::Tensor dd = torch::stack(stateKF);
-    torch::Tensor mean = torch::mean(dd, 0);
-    torch::Tensor var = torch::var(dd, 0);
-    torch::Tensor covM = torch::cov(dd.t());
-    std::cout << "[ dd ]\n"
-              << dd << std::endl;
-    std::cout << "[ mean ]\n"
-              << mean << std::endl;
-    std::cout << "[ var ]\n"
-              << var << std::endl;
-    std::cout << "[ S ]\n"
-              << covM << std::endl;
-    std::cout << "[ S^-1 ]\n"
-              << torch::inverse(covM) << std::endl;
-    return std::make_tuple(mean, var, covM);
+    if (stateKF.size() == 1)
+    {
+        return std::make_tuple(stateKF[0], torch::Tensor(), torch::Tensor(), 1);
+    }
+    else
+    {
+        torch::Tensor dd = torch::stack(stateKF);
+        torch::Tensor mean = torch::mean(dd, 0);
+        torch::Tensor var = torch::var(dd, 0);
+        torch::Tensor covM = torch::cov(dd.t());
+        return std::make_tuple(mean, var, covM, stateKF.size());
+    }
 }

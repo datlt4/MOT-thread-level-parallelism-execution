@@ -3,8 +3,8 @@
 /**
  * ./mot AVG-TownCentre
  * ./mot djiphantom
- * ./mot drone 4
- * ./mot helofast
+ * ./mot drone 24
+ * ./mot helofast 30
  * ./mot oxford-street
  * ./mot police-drone
  * ./mot Thermal
@@ -23,7 +23,7 @@ int main(int argc, const char *argv[])
     std::string xx{argv[1]};
     int sleep = std::atoi(argv[2]);
 
-    std::string inputPath = "/mnt/4B323B9107F693E2/TensorRT/samples/vizgard-drone/" + xx + ".mp4";
+    std::string inputPath = "/mnt/2B59B0F32ED5FBD7/Projects/KIKAI/samples/vizgard-drone/" + xx + ".mp4";
     std::string outputPath = "./" + xx + ".mp4";
 
     cv::VideoCapture cap(inputPath, cv::CAP_GSTREAMER);
@@ -38,8 +38,8 @@ int main(int argc, const char *argv[])
     Config *cfg = new Config();
     cfg->BATCH_SIZE = 1;
     cfg->INPUT_CHANNEL = 3;
-    cfg->engine_file = "/mnt/4B323B9107F693E2/TensorRT/model-zoo/vizgard/yolov4-vizgard-512.engine";
-    cfg->labels_file = "/mnt/4B323B9107F693E2/TensorRT/model-zoo/vizgard/yolov4-vizgard-512.names";
+    cfg->engine_file = "/mnt/2B59B0F32ED5FBD7/Projects/KIKAI/model-zoo/vizgard/yolov4-vizgard-512.engine";
+    cfg->labels_file = "/mnt/2B59B0F32ED5FBD7/Projects/KIKAI/model-zoo/vizgard/yolov4-vizgard-512.names";
     cfg->IMAGE_WIDTH = 512;
     cfg->IMAGE_HEIGHT = 512;
     cfg->model = std::string("yolo");
@@ -53,7 +53,8 @@ int main(int argc, const char *argv[])
     YOLOv4 *yolo = new YOLOv4(cfg);
     yolo->LoadEngine();
 #ifdef USE_MOT
-    HaTiny tracker{};
+    std::array<int64_t, 2> orig_dim{int64_t(cap.get(cv::CAP_PROP_FRAME_HEIGHT)), int64_t(cap.get(cv::CAP_PROP_FRAME_WIDTH))};
+    HaTiny tracker{orig_dim};
     TargetStorage repo{};
 #endif // USE_MOT
     // TODO: Thread communication
@@ -171,6 +172,7 @@ int main(int argc, const char *argv[])
             cv::putText(pData.cap_frame, info_msg, cv::Point2f(10, 20), cv::FONT_HERSHEY_COMPLEX_SMALL, 1.2, cv::Scalar{50, 255, 0}, 2);
 
             writer.write(pData.cap_frame);
+            cv::resize(pData.cap_frame, pData.cap_frame, cv::Size(1280, 720));
             cv::imshow("EMoi", pData.cap_frame);
             // Press ESC on keyboard to exit
             char c = (char)cv::waitKey(25);

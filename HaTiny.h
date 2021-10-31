@@ -11,11 +11,7 @@
 
 namespace M
 {
-    struct TrackData
-    {
-        KalmanTracker kalman;
-        FeatureBundle feats;
-    };
+    struct TrackData;
 }
 
 template <typename T>
@@ -24,7 +20,7 @@ class TrackerManager;
 class HaTiny
 {
 public:
-    explicit HaTiny();
+    explicit HaTiny(const std::array<int64_t, 2> &dim);
     ~HaTiny();
     std::vector<bbox_t> update(const std::vector<bbox_t> &detections, cv::Mat ori_img);
 

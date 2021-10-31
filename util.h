@@ -43,20 +43,23 @@ namespace M
         return dist;
     }
 
-    static float mahalanobis(const torch::Tensor &det, const std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> &trk)
+    static float mahalanobis(const torch::Tensor &det, const std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, size_t> &trk)
     {
-        // torch::Tensor d = torch::unsqueeze(det, 0);
-        // torch::Tensor mu = torch::unsqueeze(std::get<0>(trk), 0);
-        torch::Tensor v = torch::unsqueeze(det - std::get<0>(trk), 0);
-        torch::Tensor maha = torch::matmul(torch::matmul(v, torch::inverse(std::get<2>(trk))), v.t());
-        // std::cout << "[ V ]\n"
-        //           << v << std::endl;
-        // std::cout << "[ S ]\n"
-        //           << std::get<2>(trk) << std::endl;
+        torch::Tensor maha;
+        if (std::get<3>(trk) == 1)
+        {
+            torch::Tensor v = torch::unsqueeze(det - std::get<0>(trk), 0);
+            maha = torch::matmul(v, v.t());
+        }
+        else
+        {
+            torch::Tensor v = torch::unsqueeze(det - std::get<0>(trk), 0);
+            maha = torch::matmul(torch::matmul(v, torch::inverse(std::get<2>(trk))), v.t());
+        }
         return maha[0][0].item<float>();
     }
 
-    static torch::Tensor mahalanobis_dist(const std::vector<torch::Tensor> &dets, const std::vector<std::tuple<torch::Tensor, torch::Tensor, torch::Tensor>> &trks)
+    static torch::Tensor mahalanobis_dist(const std::vector<torch::Tensor> &dets, const std::vector<std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, size_t>> &trks)
     {
         auto trk_num = trks.size();
         auto det_num = dets.size();
@@ -79,7 +82,6 @@ namespace M
         static const float *histRange[] = {range};
         static const int channels = 0;
         torch::Tensor out = torch::ones({static_cast<long>(images.size()), FEAT_DIM});
-
         for (int j = 0; j < images.size(); ++j)
         {
             std::vector<cv::Mat> bgr_planes;
@@ -88,10 +90,11 @@ namespace M
             cv::calcHist(&bgr_planes[0], 1, 0, cv::Mat(), b_hist, 1, &histSize, histRange, true, false);
             cv::calcHist(&bgr_planes[1], 1, 0, cv::Mat(), g_hist, 1, &histSize, histRange, true, false);
             cv::calcHist(&bgr_planes[2], 1, 0, cv::Mat(), r_hist, 1, &histSize, histRange, true, false);
-            avg_hist = (b_hist + g_hist + r_hist) / (3 * bgr_planes[0].cols * bgr_planes[0].rows);
+            avg_hist = b_hist + g_hist + r_hist;
+            avg_hist.convertTo(avg_hist, CV_32F, 1.0 / 3);
             for (int i = 0; i < FEAT_DIM; ++i)
             {
-                out[j][i] = *(avg_hist.data + i);
+                out[j][i] = avg_hist.at<float>(i);
             }
         }
         return out;
@@ -145,8 +148,7 @@ namespace
         return cv::Scalar(b, g, r);
     }
 
-    void draw_text(cv::Mat &img, const std::string &str,
-                   const cv::Scalar &color, cv::Point pos, bool reverse = false)
+    void draw_text(cv::Mat &img, const std::string &str, const cv::Scalar &color, cv::Point pos, bool reverse = false)
     {
         auto t_size = cv::getTextSize(str, cv::FONT_HERSHEY_PLAIN, 1, 1, nullptr);
         cv::Point bottom_left, upper_right;
@@ -165,8 +167,7 @@ namespace
         cv::putText(img, str, bottom_left, cv::FONT_HERSHEY_PLAIN, 1, cv::Scalar(255, 255, 255) - color);
     }
 
-    void draw_bbox(cv::Mat &img, bbox_t bbox,
-                   const std::string &label = "", const cv::Scalar &color = {0, 0, 0})
+    void draw_bbox(cv::Mat &img, bbox_t bbox, const std::string &label = "", const cv::Scalar &color = {0, 0, 0})
     {
         cv::Rect2f rect(bbox.x, bbox.y, bbox.w, bbox.h);
         cv::rectangle(img, rect, color);
@@ -176,8 +177,7 @@ namespace
         }
     }
 
-    void draw_trajectories(cv::Mat &img, const std::map<int, bbox_t> &traj,
-                           const cv::Scalar &color = {0, 0, 0})
+    void draw_trajectories(cv::Mat &img, const std::map<int, bbox_t> &traj, const cv::Scalar &color = {0, 0, 0})
     {
         if (traj.size() < 2)
             return;
