@@ -23,7 +23,7 @@ int main(int argc, const char *argv[])
     std::string xx{argv[1]};
     int sleep = std::atoi(argv[2]);
 
-    std::string inputPath = "/mnt/2B59B0F32ED5FBD7/Projects/KIKAI/samples/vizgard-drone/" + xx + ".mp4";
+    std::string inputPath = "/mnt/2B59B0F32ED5FBD7/Projects/KIKAI/samples/drone/" + xx + ".mp4";
     std::string outputPath = "./" + xx + ".mp4";
 
     cv::VideoCapture cap(inputPath, cv::CAP_GSTREAMER);
@@ -38,8 +38,8 @@ int main(int argc, const char *argv[])
     Config *cfg = new Config();
     cfg->BATCH_SIZE = 1;
     cfg->INPUT_CHANNEL = 3;
-    cfg->engine_file = "/mnt/2B59B0F32ED5FBD7/Projects/KIKAI/model-zoo/vizgard/yolov4-vizgard-512.engine";
-    cfg->labels_file = "/mnt/2B59B0F32ED5FBD7/Projects/KIKAI/model-zoo/vizgard/yolov4-vizgard-512.names";
+    cfg->engine_file = "/mnt/2B59B0F32ED5FBD7/Projects/KIKAI/model-zoo/yolov4-512.engine";
+    cfg->labels_file = "/mnt/2B59B0F32ED5FBD7/Projects/KIKAI/model-zoo/yolov4-512.names";
     cfg->IMAGE_WIDTH = 512;
     cfg->IMAGE_HEIGHT = 512;
     cfg->model = std::string("yolo");
